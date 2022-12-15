@@ -117,7 +117,7 @@ static NSString *const CHANNEL_NAME = @"open_file";
             @try {
                 BOOL previewSucceeded = [_documentController presentPreviewAnimated:YES];
                 if(!previewSucceeded){
-                    [_documentController presentOpenInMenuFromRect:CGRectMake(500,20,100,100) inView:[UIApplication sharedApplication].delegate.window.rootViewController.view animated:YES];
+                    [_documentController presentOpenInMenuFromRect:CGRectMake(500,20,100,100) inView:[self findRootController].view animated:YES];
                 }
             }@catch (NSException *exception) {
                 NSDictionary * dict = @{@"message":@"File opened incorrectly。", @"type":@-4};
@@ -154,7 +154,7 @@ static NSString *const CHANNEL_NAME = @"open_file";
 }
 
 - (UIViewController *)documentInteractionControllerViewControllerForPreview:(UIDocumentInteractionController *)controller {
-    return  [UIApplication sharedApplication].delegate.window.rootViewController;
+    return [self findRootController];
 }
 
 - (BOOL) isBlankString:(NSString *)string {
@@ -168,5 +168,52 @@ static NSString *const CHANNEL_NAME = @"open_file";
         return YES;
     }
     return NO;
+}
+
+- (UIViewController *) findRootController {
+    return [self findBestViewController:[UIApplication sharedApplication].delegate.window.rootViewController];
+}
+
+-(UIViewController*) findBestViewController:(UIViewController*)vc {
+    //https://stackoverflow.com/a/24825480/9294819
+    
+    if (vc.presentedViewController) {
+
+        // Return presented view controller
+        return [self findBestViewController:vc.presentedViewController];
+
+    } else if ([vc isKindOfClass:[UISplitViewController class]]) {
+
+        // Return right hand side
+        UISplitViewController* svc = (UISplitViewController*) vc;
+        if (svc.viewControllers.count > 0)
+            return [self findBestViewController:svc.viewControllers.lastObject];
+        else
+            return vc;
+
+    } else if ([vc isKindOfClass:[UINavigationController class]]) {
+
+        // Return top view
+        UINavigationController* svc = (UINavigationController*) vc;
+        if (svc.viewControllers.count > 0)
+            return [self findBestViewController:svc.topViewController];
+        else
+            return vc;
+
+    } else if ([vc isKindOfClass:[UITabBarController class]]) {
+
+        // Return visible view
+        UITabBarController* svc = (UITabBarController*) vc;
+        if (svc.viewControllers.count > 0)
+            return [self findBestViewController:svc.selectedViewController];
+        else
+            return vc;
+
+    } else {
+
+        // Unknown view controller type, return last child view controller
+        return vc;
+    }
+
 }
 @end
